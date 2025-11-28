@@ -6,7 +6,14 @@
 
 Calculator::Calculator(std::string expression, Loader* loader)
     : s_(expression), pos_(0), loader_(loader) {
-    skip_ws(); 
+    builtin_ops_["+"] = [](double a, double b) { return a + b; };
+    builtin_ops_["-"] = [](double a, double b) { return a - b; };
+    builtin_ops_["*"] = [](double a, double b) { return a * b; };
+    builtin_ops_["/"] = [](double a, double b) {
+        if (b == 0.0) throw std::runtime_error("Division by zero");
+        return a / b;
+        };
+    skip_ws();
 }
 
 bool Calculator::eof() {
@@ -119,19 +126,27 @@ double Calculator::parse_unary() {
     return parse_primary();
 }
 
+double Calculator::apply_binary(const std::string& op, double a, double b) {
+
+    std::map<std::string, std::function<double(double, double)> >::iterator it =
+        builtin_ops_.find(op);
+    if (it == builtin_ops_.end()) {
+        throw std::runtime_error("Unknown builtin op '" + op + "'");
+    }
+    return it->second(a, b);
+}
+
 double Calculator::parse_term() {
     double v = parse_unary();
     while (true) {
         skip_ws();
         if (match('*')) {
-            v *= parse_unary();
+            double rhs = parse_unary();
+            v = apply_binary("*", v, rhs);
         }
         else if (match('/')) {
-            double d = parse_unary();
-            if (d == 0.0) {
-                throw std::runtime_error("Division by zero");
-            }
-            v /= d;
+            double rhs = parse_unary();
+            v = apply_binary("/", v, rhs);
         }
         else {
             break;
@@ -145,10 +160,12 @@ double Calculator::parse_expr() {
     while (true) {
         skip_ws();
         if (match('+')) {
-            v += parse_term();
+            double rhs = parse_term();
+            v = apply_binary("+", v, rhs);
         }
         else if (match('-')) {
-            v -= parse_term();
+            double rhs = parse_term();
+            v = apply_binary("-", v, rhs);
         }
         else {
             break;

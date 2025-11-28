@@ -25,19 +25,18 @@ std::string format_number(double x) {
 
 int main(int argc, char* argv[]) {
     try {
+        if (argc <= 1) {
+            std::cerr << "Usage: Calculator <expression>\n";
+            return 1;
+        }
+
         Loader loader;
         loader.load_all("plugins");
 
         std::string expr;
-        if (argc > 1) {
-            int i;
-            for (i = 1; i < argc; ++i) {
-                if (i > 1) expr += ' ';
-                expr += argv[i];
-            }
-        }
-        else {
-            std::getline(std::cin, expr); 
+        for (int i = 1; i < argc; ++i) {
+            if (i > 1) expr += ' ';
+            expr += argv[i];
         }
 
         Calculator calc(expr, &loader);
@@ -45,6 +44,7 @@ int main(int argc, char* argv[]) {
         std::cout << format_number(res) << "\n";
         return 0;
     }
+
     catch (const std::exception& e) {
         std::cerr << "fatal: " << e.what() << "\n";
         return 2;
